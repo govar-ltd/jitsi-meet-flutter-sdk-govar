@@ -36,7 +36,7 @@ class JitsiAudioRecorder {
 
     const config = RecordConfig(
       encoder: AudioEncoder.pcm16bits,
-      sampleRate: 16000
+      sampleRate: 44100
     );
 
     await _recorder.start(config, path: filePath);

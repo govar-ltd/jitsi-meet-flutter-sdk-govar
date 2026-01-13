@@ -1,3 +1,51 @@
+## 11.6.0 
+
+* chore(deps): update native sdks to 11.6.0 [9fd1a6e](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/9fd1a6ecf6b790ee8e442d561ee92beea5c66734).
+
+## 11.5.1 
+
+* chore(deps): update native sdks to 11.5.1 [d1a7693](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/d1a7693369ec1d46c88eee865e15c955dbb6dc94).
+
+## 11.4.0 
+
+* 11.4.0 [5c558d4](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/5c558d4fbb45c4ebd79dcf832d4a6ef7660f9f5b).
+
+## 11.3.1 
+
+* chore(deps): update native sdks to 11.3.1/2 [0aef245](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/0aef245629f85610be03bb707b3ffa3de4f92a8d).
+* feat(android): handle overrides for diff array and object types [92fffe9](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/92fffe91252c886307abe6c1bc8b4f449743f376).
+
+## 11.3.0 
+
+* chore(deps): update native sdks to 11.3.0 [684a5f5](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/684a5f55451172649a868175dbcf5f0d7460c138).
+* chore(deps): update native sdks to 11.3.0 [9d4c64d](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/9d4c64d68ea64b156900472256015b142778e849).
+
+## 11.2.0 
+
+
+
+## 11.1.1 
+
+* chore(deps): update native sdks to 11.1.0 [0039ad8](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/0039ad81157366fabd24b6a9c69ac360c2c52902).
+* Exclude Jitsi Meet activity from recents [7fcd733](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/7fcd733e73fe3e0c9236651ff5ca6792f7890f19).
+
+## 11.0.2 
+
+* changed customOverflowMenuButtonPressed to customButtonPressed [cc2e16e](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/cc2e16e600231aea0c6e2c407ef3e9a0af09e75d).
+* fix(wrapper-activity): Update broadcast event type for custom button press [6ed8c05](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/6ed8c0541291b91fee7cf51c5ccb937048237f70).
+
+## 11.0.1 
+
+* chore(deps): update ios native sdk to 11.0.1 [f0fbfe9](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/f0fbfe992015780d6f28330292ebd6776f643eb9).
+
+## 11.0.0 
+
+* chore(deps): update native sdks to 11.0.0 [166b62b](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/166b62bfe6d9b653db4eb13666eba77f3454701b).
+* Update minimum supported iOS version [cd20737](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/cd207374f5cb1b413471a710e5b03b63a5747174).
+* Add ProGuard rules information to README [134610f](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/134610fc724d9879b592c8752df1822584b5ae91).
+* [Feature] Add the possibility to control PiP programmatically (#94) [6b981b3](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/6b981b30c0491e899e1f6d3f34b7b1547085306e).
+* feat(example): use latest Jitsi Flutter SDK [6fb926a](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/6fb926adb98d8ad1231699fd20edb43a7488414b).
+
 ## 10.3.24
 
 * Migrate Jitsi to widget 10.3.24 (pip)

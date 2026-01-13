@@ -179,4 +179,7 @@ class FeatureFlags{
   /// Default: disabled (false).
   static const String toolboxAlwaysVisible = "toolbox.alwaysVisible";
 
+  /// FeatureFlags [breakoutRoomsEnabled] : Flag indicating if the breakout Rooms should be always be visible
+  /// Default: enabled (true).
+  static const String breakoutRoomsEnabled = "breakout-rooms.enabled";
 }

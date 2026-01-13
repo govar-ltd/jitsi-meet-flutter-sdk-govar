@@ -64,6 +64,21 @@ class _MyAppState extends State<MyApp> {
     readyToClose: () {
       debugPrint("readyToClose");
     },
+    bottomViewTapped: () {
+      debugPrint("bottomViewTapped");
+    },
+    changeRoomTapped: () {
+      debugPrint("changeRoomTapped");
+    },
+    saveResultsTapped: () {
+      debugPrint("saveResultsTapped");
+    },
+    getTopicTapped: () {
+      debugPrint("getTopicTapped");
+    },
+    customButtonPressed: (buttonId) {
+      debugPrint("customButtonPressed: buttonId: $buttonId");
+    },
   );
 
   @override

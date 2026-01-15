@@ -1,6 +1,6 @@
 name: jitsi_meet_govar_flutter_sdk
 description: A custom fork of jitsi_meet_flutter_sdk with some modifications.
-version: 11.6.0
+version: 11.6.1
 homepage: https://jitsi.org/
 repository: https://github.com/jitsi/jitsi-meet-flutter-sdk
 

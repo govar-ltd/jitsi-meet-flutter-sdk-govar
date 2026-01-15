@@ -10,6 +10,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import org.jitsi.meet.sdk.BroadcastEvent
 import org.jitsi.meet.sdk.JitsiMeetActivity
+import android.app.KeyguardManager
 import android.view.WindowManager
 import android.os.Build
 import android.view.View
@@ -55,6 +56,7 @@ class WrapperJitsiMeetActivity : JitsiMeetActivity(), View.OnClickListener {
         findViewById<View>(R.id.changeRoom).setOnClickListener(this)
         findViewById<View>(R.id.saveResults).setOnClickListener(this)
         findViewById<View>(R.id.bottomView).setOnClickListener(this)
+
     }
 
     private fun showOnLockscreen() {
@@ -120,7 +122,7 @@ class WrapperJitsiMeetActivity : JitsiMeetActivity(), View.OnClickListener {
 
                     BroadcastEvent.Type.READY_TO_CLOSE.action -> eventStreamHandler.readyToClose()
 
-                    BroadcastEvent.Type.CUSTOM_OVERFLOW_MENU_BUTTON_PRESSED.action -> eventStreamHandler.customOverflowMenuButtonPressed(
+                    BroadcastEvent.Type.CUSTOM_BUTTON_PRESSED.action -> eventStreamHandler.customButtonPressed(
                         data
                     )
 

@@ -4,7 +4,7 @@ PODS:
     - libwebp
   - integration_test (0.0.1):
     - Flutter
-  - jitsi_meet_govar_flutter_sdk (10.3.22):
+  - jitsi_meet_govar_flutter_sdk (10.3.24):
     - Flutter
     - JitsiMeetSDK (= 10.3.0)
   - JitsiMeetSDK (10.3.0):
@@ -56,10 +56,10 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/record_darwin/ios"
 
 SPEC CHECKSUMS:
-  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   Giphy: 83628960ed04e1c3428ff1b4fb2b027f65e82f50
   integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
-  jitsi_meet_govar_flutter_sdk: 06b5bc278e41984f4e78f7c27a3ac554d3e3df87
+  jitsi_meet_govar_flutter_sdk: 58f3de9a9076866741cd521ffc1cc4c6ab8c6d06
   JitsiMeetSDK: 439fc3e45870c5ebf7b371fa038719bf70ef76d9
   JitsiWebRTC: b47805ab5668be38e7ee60e2258f49badfe8e1d0
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8

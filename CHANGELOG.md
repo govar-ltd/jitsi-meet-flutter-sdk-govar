@@ -1,3 +1,7 @@
+## 11.6.1
+
+* Add exclude for media3-exoplayer-rtsp.
+
 ## 11.6.0 
 
 * chore(deps): update native sdks to 11.6.0 [9fd1a6e](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/9fd1a6ecf6b790ee8e442d561ee92beea5c66734).

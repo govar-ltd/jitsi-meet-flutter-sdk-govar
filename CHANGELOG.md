@@ -1,3 +1,7 @@
+## 11.6.2
+
+* Add exclude for media3-exoplayer-rtsp.
+
 ## 11.6.1
 
 * Add exclude for media3-exoplayer-rtsp.

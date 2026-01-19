@@ -31,6 +31,12 @@ rootProject.allprojects {
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
+// Exclude media3-exoplayer-rtsp from all configurations to avoid duplicate classes
+// The classes are already included in react-native-video AAR, so we exclude the separate dependency
+configurations.all {
+    exclude group: 'androidx.media3', module: 'media3-exoplayer-rtsp'
+}
+
 android {
     namespace 'org.jitsi.jitsi_meet_flutter_sdk'
     compileSdkVersion 36

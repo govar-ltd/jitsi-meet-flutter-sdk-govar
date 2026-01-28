@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'jitsi_meet_govar_flutter_sdk'
-  s.version          = '11.6.0'
+  s.version          = '12.0.0'
   s.summary          = 'A custom fork of jitsi_meet_flutter_sdk with some modifications.'
   s.description      = <<-DESC
 Jitsi Meet Flutter SDK
@@ -16,7 +16,7 @@ Jitsi Meet Flutter SDK
   s.source_files = 'Classes/**/*'
   s.resources    = 'Assets/**/*'
   s.dependency 'Flutter'
-  s.dependency 'JitsiMeetSDK', '11.6.0'
+  s.dependency 'JitsiMeetSDK', '12.0.0'
   s.platform = :ios, '15.1'
 
   # Flutter.framework does not contain a i386 slice.

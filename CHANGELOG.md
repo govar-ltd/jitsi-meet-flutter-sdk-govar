@@ -1,3 +1,8 @@
+## 12.0.0 
+
+* chore(deps): update native sdks to 12.0.0 [385878e](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/385878e922eb66528462c22f7b2b7cc9b5823df0).
+* Added the breakout Rooms flag in the features_flags [208814b](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/208814b2d6b875eab9ad122cf379d4c32f4cda40).
+
 ## 11.6.2
 
 * Add exclude for media3-exoplayer-rtsp.

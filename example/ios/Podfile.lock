@@ -4,10 +4,10 @@ PODS:
     - libwebp
   - integration_test (0.0.1):
     - Flutter
-  - jitsi_meet_govar_flutter_sdk (10.3.24):
+  - jitsi_meet_govar_flutter_sdk (12.0.0):
     - Flutter
-    - JitsiMeetSDK (= 10.3.0)
-  - JitsiMeetSDK (10.3.0):
+    - JitsiMeetSDK (= 12.0.0)
+  - JitsiMeetSDK (12.0.0):
     - Giphy (= 2.2.12)
     - JitsiWebRTC (~> 124.0)
   - JitsiWebRTC (124.0.2)
@@ -37,7 +37,7 @@ DEPENDENCIES:
   - record_darwin (from `.symlinks/plugins/record_darwin/ios`)
 
 SPEC REPOS:
-  trunk:
+  https://github.com/CocoaPods/Specs.git:
     - Giphy
     - JitsiMeetSDK
     - JitsiWebRTC
@@ -59,13 +59,13 @@ SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   Giphy: 83628960ed04e1c3428ff1b4fb2b027f65e82f50
   integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
-  jitsi_meet_govar_flutter_sdk: 58f3de9a9076866741cd521ffc1cc4c6ab8c6d06
-  JitsiMeetSDK: 439fc3e45870c5ebf7b371fa038719bf70ef76d9
+  jitsi_meet_govar_flutter_sdk: 79126f70a93081cfff8371a6e2cbe569a72d43f2
+  JitsiMeetSDK: 2e475ff0be5a46bb239ed12ab24f2bbda66f0445
   JitsiWebRTC: b47805ab5668be38e7ee60e2258f49badfe8e1d0
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   record_darwin: fb1f375f1d9603714f55b8708a903bbb91ffdb0a
 
-PODFILE CHECKSUM: a33f59345450d290a8dbcf342843f42525e4989f
+PODFILE CHECKSUM: bfb119325213a01ef456301c3f43908063d8267f
 
 COCOAPODS: 1.16.2

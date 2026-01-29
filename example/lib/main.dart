@@ -100,7 +100,7 @@ class _MyAppState extends State<MyApp> {
             SizedBox(
               width: double.infinity,
               height: 600,
-              child: JitsiMeetWidget(room: 'https://meet.govar.online:9443/govar_speaking_club?config.toolbarButtons=["microphone","chat","raisehand","participants-pane","toggle-camera","noisesuppression","embedmeeting"]&userInfo.displayName=anton&userInfo.email=mahyk92@gmail.com&userInfo.avatar=https://firebasestorage.googleapis.com/v0/b/govar-72b4b.appspot.com/o/users%2FsS6iSKZIXjN01EI6VrjB4dAzotH2%2Fuploads%2F1738329112589358.jpg?alt=media&token=92f7158b-b6ab-46e3-b5ec-7855ad13a991&config.startWithVideoMuted=true&notificationEnabled=false'),
+              child: JitsiMeetWidget(room: 'https://meet.govar.online:9443/govar_speaking_club?config.toolbarButtons=["microphone","camera","chat","raisehand","participants-pane","toggle-camera","noisesuppression","embedmeeting"]&userInfo.displayName=Test_iOS&userInfo.email=mahyk92@gmail.com&userInfo.avatar=https://firebasestorage.googleapis.com/v0/b/govar-72b4b.appspot.com/o/users%2FsS6iSKZIXjN01EI6VrjB4dAzotH2%2Fuploads%2F1738329112589358.jpg?alt=media&token=92f7158b-b6ab-46e3-b5ec-7855ad13a991&config.startWithVideoMuted=true&notificationEnabled=false'),
             ),
             SizedBox(
               width: double.infinity,

@@ -216,7 +216,6 @@ extension JitsiMeetConferenceOptions {
                                 "tileview": "tile-view.enabled",
                                 "toggle-camera": "toggle-camera-button.enabled",
                                 "invite": "invite.enabled",
-                                "videoquality": "resolution",
                                 "fullscreen": "fullscreen.enabled",
                                 "security": "security-options.enabled",
                                 "closedcaptions": "close-captions.enabled",

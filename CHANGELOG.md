@@ -1,3 +1,7 @@
+## 12.0.1
+
+* Delete videoquality feature flag from iOS parser.
+
 ## 12.0.0 
 
 * chore(deps): update native sdks to 12.0.0 [385878e](https://github.com/jitsi/jitsi-meet-flutter-sdk/commit/385878e922eb66528462c22f7b2b7cc9b5823df0).

@@ -12,9 +12,18 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     }
 
     public static func register(with registrar: FlutterPluginRegistrar) {
-        // UIScene owns the window; AppDelegate.window can be nil at startup.
-        // The registrar provides the controller for this specific Flutter engine.
-        guard let flutterViewController = registrar.viewController else {
+        // New Flutter engines expose their own controller. Under UIScene the
+        // application delegate's window is nil, so do not force-unwrap it.
+        // Keep compatibility with older Flutter headers used by existing apps.
+        let registrarObject = registrar as? NSObject
+        let engineController: UIViewController?
+        if let registrarObject = registrarObject,
+           registrarObject.responds(to: NSSelectorFromString("viewController")) {
+            engineController = registrarObject.value(forKey: "viewController") as? UIViewController
+        } else {
+            engineController = UIApplication.shared.delegate?.window??.rootViewController
+        }
+        guard let flutterViewController = engineController else {
             // A background/headless engine has no UI in which to host a meeting.
             return
         }

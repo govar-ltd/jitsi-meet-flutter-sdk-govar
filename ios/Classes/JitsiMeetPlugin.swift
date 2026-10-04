@@ -3,32 +3,12 @@ import UIKit
 import JitsiMeetSDK
 
 public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
-    var flutterViewController: UIViewController
     var jitsiNativeView: JitsiNativeView?
     var eventSink: FlutterEventSink?
 
-    init(flutterViewController: UIViewController) {
-        self.flutterViewController = flutterViewController
-    }
-
     public static func register(with registrar: FlutterPluginRegistrar) {
-        // New Flutter engines expose their own controller. Under UIScene the
-        // application delegate's window is nil, so do not force-unwrap it.
-        // Keep compatibility with older Flutter headers used by existing apps.
-        let registrarObject = registrar as? NSObject
-        let engineController: UIViewController?
-        if let registrarObject = registrarObject,
-           registrarObject.responds(to: NSSelectorFromString("viewController")) {
-            engineController = registrarObject.value(forKey: "viewController") as? UIViewController
-        } else {
-            engineController = UIApplication.shared.delegate?.window??.rootViewController
-        }
-        guard let flutterViewController = engineController else {
-            // A background/headless engine has no UI in which to host a meeting.
-            return
-        }
         let channel = FlutterMethodChannel(name: "jitsi_meet_flutter_sdk", binaryMessenger: registrar.messenger())
-        let instance = JitsiMeetPlugin(flutterViewController: flutterViewController)
+        let instance = JitsiMeetPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
 
         let eventChannel = FlutterEventChannel(name: "jitsi_meet_flutter_sdk_events", binaryMessenger: registrar.messenger())

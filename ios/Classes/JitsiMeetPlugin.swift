@@ -12,8 +12,13 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     }
 
     public static func register(with registrar: FlutterPluginRegistrar) {
+        // UIScene owns the window; AppDelegate.window can be nil at startup.
+        // The registrar provides the controller for this specific Flutter engine.
+        guard let flutterViewController = registrar.viewController else {
+            // A background/headless engine has no UI in which to host a meeting.
+            return
+        }
         let channel = FlutterMethodChannel(name: "jitsi_meet_flutter_sdk", binaryMessenger: registrar.messenger())
-        let flutterViewController: UIViewController = (UIApplication.shared.delegate?.window??.rootViewController)!
         let instance = JitsiMeetPlugin(flutterViewController: flutterViewController)
         registrar.addMethodCallDelegate(instance, channel: channel)
 

@@ -18,6 +18,7 @@ dependencies:
   http: ^1.1.2
 
 dev_dependencies:
+  record_platform_interface: ^1.6.0
   flutter_test:
     sdk: flutter
   flutter_lints: ^2.0.0

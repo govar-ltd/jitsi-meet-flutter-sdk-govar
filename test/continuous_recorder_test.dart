@@ -59,40 +59,74 @@ class Capture extends Fake
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  test('one microphone start across 10s and 60s; final tail drains on stop',
-      () async {
-    final previous = RecordPlatform.instance;
-    final platform = Capture();
-    RecordPlatform.instance = platform;
-    final tmp = await Directory.systemTemp.createTemp('sdk-continuous-');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-            const MethodChannel('plugins.flutter.io/path_provider'),
-            (_) async => tmp.path);
-    try {
-      final recorder = JitsiAudioRecorder();
-      final files = <String>[];
-      final errors = <Object>[];
-      await recorder.createRecordingFolder();
-      final r = await recorder.startContinuousRecording(
-          onChunk: files.add, onError: (e, _) => errors.add(e));
-      expect(r.isSuccess, true);
-      await recorder.startContinuousRecording(
-          onChunk: files.add, onError: (e, _) => errors.add(e));
-      for (var i = 0; i < 71; i++) {
-        await platform.sink!.writeFrom(Uint8List(96000));
-        await Future<void>.delayed(const Duration(milliseconds: 2));
-      }
-      await Future<void>.delayed(const Duration(milliseconds: 650));
-      await recorder.stopRecording();
-      expect(platform.starts, 1);
-      expect(platform.stops, 1);
-      expect(errors, isEmpty);
-      expect(files.map((p) => File(p).lengthSync()), [960044, 5760044, 96044]);
-    } finally {
-      RecordPlatform.instance = previous;
+  for (final native in [false, true]) {
+    test(
+        'one microphone start across 10s and 60s; native=$native; final tail drains on stop',
+        () async {
+      final previous = RecordPlatform.instance;
+      final platform = Capture();
+      RecordPlatform.instance = platform;
+      final tmp = await Directory.systemTemp.createTemp('sdk-continuous-');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+              const MethodChannel('plugins.flutter.io/path_provider'),
+              (_) async => tmp.path);
+      try {
+        var nativeStarts = 0, nativeStops = 0;
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(
+                const MethodChannel('jitsi_meet_flutter_sdk'), (call) async {
+          switch (call.method) {
+            case 'govarStartNativeWav':
+              nativeStarts++;
+              await platform.start(
+                  'native',
+                  const RecordConfig(
+                      encoder: AudioEncoder.wav,
+                      sampleRate: 48000,
+                      numChannels: 1),
+                  path: (call.arguments as Map)['path'] as String);
+              return {'recording': true};
+            case 'govarStopNativeWav':
+              nativeStops++;
+              await platform.stop('native');
+              return null;
+            case 'govarNativeWavStatus':
+              return {'recording': true, 'paused': false};
+            default:
+              throw StateError('Unexpected native method');
+          }
+        });
+        final recorder = JitsiAudioRecorder(nativeIosCapture: native);
+        final files = <String>[];
+        final errors = <Object>[];
+        await recorder.createRecordingFolder();
+        final r = await recorder.startContinuousRecording(
+            onChunk: files.add, onError: (e, _) => errors.add(e));
+        expect(r.isSuccess, true);
+        await recorder.startContinuousRecording(
+            onChunk: files.add, onError: (e, _) => errors.add(e));
+        for (var i = 0; i < 71; i++) {
+          await platform.sink!.writeFrom(Uint8List(96000));
+          await Future<void>.delayed(const Duration(milliseconds: 2));
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 650));
+        await recorder.stopRecording();
+        expect(platform.starts, 1);
+        expect(nativeStarts, native ? 1 : 0);
+        expect(nativeStops, native ? 1 : 0);
+        expect(platform.stops, 1);
+        expect(errors, isEmpty);
+        expect(
+            files.map((p) => File(p).lengthSync()), [960044, 5760044, 96044]);
+      } finally {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(
+                const MethodChannel('jitsi_meet_flutter_sdk'), null);
+        RecordPlatform.instance = previous;
 
-      await tmp.delete(recursive: true);
-    }
-  });
+        await tmp.delete(recursive: true);
+      }
+    });
+  }
 }

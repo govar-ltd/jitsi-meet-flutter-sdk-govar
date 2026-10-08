@@ -17,6 +17,7 @@ Jitsi Meet Flutter SDK
   s.resources    = 'Assets/**/*'
   s.dependency 'Flutter'
   s.dependency 'JitsiMeetSDK', '12.0.0'
+  s.dependency 'JitsiWebRTC', '124.0.2'
   s.platform = :ios, '15.1'
 
   # Flutter.framework does not contain a i386 slice.

@@ -2,13 +2,18 @@ import 'dart:async';
 import 'pcm_chunk_writer.dart';
 import 'growing_wav_reader.dart';
 import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:jitsi_meet_govar_flutter_sdk/src/method_response.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
 class JitsiAudioRecorder {
+  JitsiAudioRecorder({bool? nativeIosCapture})
+      : _nativeIosCapture = nativeIosCapture ?? Platform.isIOS;
+  final bool _nativeIosCapture;
   final _recorder = AudioRecorder();
+  static const _native = MethodChannel('jitsi_meet_flutter_sdk');
   Directory? _audioDirectory;
   PcmChunkWriter? _writer;
   GrowingWavReader? _reader;
@@ -61,22 +66,27 @@ class JitsiAudioRecorder {
     _pollQueue = Future.value();
     _lastGrowth = DateTime.now();
     _stalled = false;
-    _stateSubscription = _recorder.onStateChanged().listen((state) {
-      _log('recorder_state', {'state': state.name});
-    }, onError: (Object error, StackTrace stack) {
-      _log('recorder_error', {'error': error.toString()});
-      onError(error, stack);
-    });
+    if (!_nativeIosCapture) {
+      _stateSubscription = _recorder.onStateChanged().listen((state) {
+        _log('recorder_state', {'state': state.name});
+      }, onError: (Object error, StackTrace stack) {
+        _log('recorder_error', {'error': error.toString()});
+        onError(error, stack);
+      });
+    }
     try {
-      // Same native AVAudioRecorder path/configuration as the pre-420 implementation.
-      // Keep one file capture running; splitting does not reopen the microphone.
-      await _recorder.start(
-          const RecordConfig(
-            encoder: AudioEncoder.wav,
-            sampleRate: 48000,
-            numChannels: 1,
-          ),
-          path: _source!.path);
+      if (_nativeIosCapture) {
+        await _native
+            .invokeMethod('govarStartNativeWav', {'path': _source!.path});
+      } else {
+        await _recorder.start(
+            const RecordConfig(
+              encoder: AudioEncoder.wav,
+              sampleRate: 48000,
+              numChannels: 1,
+            ),
+            path: _source!.path);
+      }
       _continuous = true;
       _log('file_capture_started');
       _pollTimer = Timer.periodic(
@@ -106,8 +116,12 @@ class JitsiAudioRecorder {
       } else if (!_stalled &&
           DateTime.now().difference(_lastGrowth).inSeconds >= 10) {
         _stalled = true;
-        final paused = await _recorder.isPaused();
-        final recording = await _recorder.isRecording();
+        final state = _nativeIosCapture
+            ? await _native
+                .invokeMapMethod<String, dynamic>('govarNativeWavStatus')
+            : null;
+        final paused = state?['paused'] ?? await _recorder.isPaused();
+        final recording = state?['recording'] ?? await _recorder.isRecording();
         _log('capture_stalled',
             {'bytes': after, 'paused': paused, 'recording': recording});
         _onError?.call(
@@ -176,7 +190,11 @@ class JitsiAudioRecorder {
         _pollTimer?.cancel();
         try {
           await _pollQueue;
-          await _recorder.stop();
+          if (_nativeIosCapture) {
+            await _native.invokeMethod('govarStopNativeWav');
+          } else {
+            await _recorder.stop();
+          }
           await _reader?.poll(finalRead: true);
           await _writer?.finish();
           _log('file_capture_stopped', {'bytes': _reader?.bytesRead});

@@ -5,6 +5,7 @@ import JitsiMeetSDK
 public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     var jitsiNativeView: JitsiNativeView?
     var eventSink: FlutterEventSink?
+    private let nativeWavCapture = NativeWavCapture()
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "jitsi_meet_flutter_sdk", binaryMessenger: registrar.messenger())
@@ -28,6 +29,19 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
+        case "govarStartNativeWav":
+            guard let args = call.arguments as? [String: Any], let path = args["path"] as? String else {
+                result(FlutterError(code: "invalid_path", message: "WAV path required", details: nil)); return
+            }
+            nativeWavCapture.start(path: path, result: result)
+            return
+        case "govarStopNativeWav":
+            nativeWavCapture.stop()
+            result(nil)
+            return
+        case "govarNativeWavStatus":
+            result(nativeWavCapture.status())
+            return
         case "getPlatformVersion":
             result("iOS " + UIDevice.current.systemVersion)
             return

@@ -9,7 +9,6 @@ import 'method_response.dart';
 /// The entry point for the sdk. It is used to launch the meeting screen,
 /// to send and receive all the events.
 class JitsiMeet {
-
   final _recorder = JitsiAudioRecorder();
 
   Future<String?> getPlatformVersion() {
@@ -42,10 +41,14 @@ class JitsiMeet {
   ///
   /// In order to get the participantId for the [to] parameter, the [JitsiMeetEventListener.participantsJoined]
   /// event should be listened for, which have as a parameter the participantId and this should be stored somehow.
-  Future<MethodResponse> sendEndpointTextMessage(
-      {String? to, required String message}) async {
-    return await JitsiMeetPlatform.instance
-        .sendEndpointTextMessage(to: to, message: message);
+  Future<MethodResponse> sendEndpointTextMessage({
+    String? to,
+    required String message,
+  }) async {
+    return await JitsiMeetPlatform.instance.sendEndpointTextMessage(
+      to: to,
+      message: message,
+    );
   }
 
   /// Sets the state of the localParticipant screen sharing according to the [enabled] parameter.
@@ -64,10 +67,14 @@ class JitsiMeet {
   ///
   /// In order to get the participantId for the [to] parameter, the [JitsiMeetEventListener.participantsJoined]
   /// event should be listened for, which have as a parameter the participantId and this should be stored somehow.
-  Future<MethodResponse> sendChatMessage(
-      {String? to, required String message}) async {
-    return await JitsiMeetPlatform.instance
-        .sendChatMessage(to: to, message: message);
+  Future<MethodResponse> sendChatMessage({
+    String? to,
+    required String message,
+  }) async {
+    return await JitsiMeetPlatform.instance.sendChatMessage(
+      to: to,
+      message: message,
+    );
   }
 
   /// Closes the chat dialog.
@@ -90,6 +97,11 @@ class JitsiMeet {
     return await JitsiMeetPlatform.instance.leave();
   }
 
+  Future<MethodResponse> startContinuousRecording({
+    required void Function(String path) onChunk,
+    required void Function(Object error, StackTrace stack) onError,
+  }) => _recorder.startContinuousRecording(onChunk: onChunk, onError: onError);
+
   Future<MethodResponse> startRecording() async {
     return await _recorder.startRecording();
   }
@@ -110,25 +122,35 @@ class JitsiMeet {
     return await _recorder.deleteRecordingFolder();
   }
 
-  Future<String?> transcribeWithWhisper(String bearer, String recordingFilePath, String? language, {String model = 'whisper-1'}) async {
-    final whisperHandler = JitsiWhisperHandler(bearer: bearer, language: language, model: model);
-    final result = await whisperHandler.transcribeWithWhisper(recordingFilePath);
+  Future<String?> transcribeWithWhisper(
+    String bearer,
+    String recordingFilePath,
+    String? language, {
+    String model = 'whisper-1',
+  }) async {
+    final whisperHandler = JitsiWhisperHandler(
+      bearer: bearer,
+      language: language,
+      model: model,
+    );
+    final result = await whisperHandler.transcribeWithWhisper(
+      recordingFilePath,
+    );
     return result;
   }
 
-  Future<String?>makeChatGPTRequest(
-      String bearer,
-      String prompt,
-      {String model = 'gpt-4-turbo',
-        int maxTokens = 4096}
-      ) async {
+  Future<String?> makeChatGPTRequest(
+    String bearer,
+    String prompt, {
+    String model = 'gpt-4-turbo',
+    int maxTokens = 4096,
+  }) async {
     final chatGPTHandler = JitsiChatGPTHandler(
-        bearer: bearer,
-        model: model,
-        maxTokens: maxTokens
+      bearer: bearer,
+      model: model,
+      maxTokens: maxTokens,
     );
     final result = await chatGPTHandler.makeChatGPTRequest(prompt);
     return result;
   }
-
 }

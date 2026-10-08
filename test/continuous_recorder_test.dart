@@ -11,7 +11,8 @@ class Capture extends Fake
     with MockPlatformInterfaceMixin
     implements RecordPlatform {
   int starts = 0, stops = 0;
-  final pcm = StreamController<Uint8List>();
+  String? path;
+  RandomAccessFile? sink;
   @override
   Future<void> create(String id) async {}
   @override
@@ -19,19 +20,40 @@ class Capture extends Fake
   @override
   Stream<RecordState> onStateChanged(String id) => const Stream.empty();
   @override
-  Future<Stream<Uint8List>> startStream(String id, RecordConfig config) async {
+  Future<void> start(String id, RecordConfig config,
+      {required String path}) async {
     starts++;
     expect(config.sampleRate, 48000);
-    expect(config.encoder, AudioEncoder.pcm16bits);
-    return pcm.stream;
+    expect(config.encoder, AudioEncoder.wav);
+    this.path = path;
+    sink = await File(path).open(mode: FileMode.write);
+    final header = Uint8List(44);
+    final h = ByteData.sublistView(header);
+    header.setRange(0, 4, 'RIFF'.codeUnits);
+    header.setRange(8, 12, 'WAVE'.codeUnits);
+    header.setRange(12, 16, 'fmt '.codeUnits);
+    h.setUint32(16, 16, Endian.little);
+    h.setUint16(20, 1, Endian.little);
+    h.setUint16(22, 1, Endian.little);
+    h.setUint32(24, 48000, Endian.little);
+    h.setUint32(28, 96000, Endian.little);
+    h.setUint16(32, 2, Endian.little);
+    h.setUint16(34, 16, Endian.little);
+    header.setRange(36, 40, 'data'.codeUnits);
+    await sink!.writeFrom(header);
   }
+
+  @override
+  Future<bool> isPaused(String id) async => false;
 
   @override
   Future<bool> isRecording(String id) async => starts > stops;
   @override
   Future<String?> stop(String id) async {
     stops++;
-    return null;
+    await sink!.flush();
+    await sink!.close();
+    return path;
   }
 }
 
@@ -58,10 +80,10 @@ void main() {
       await recorder.startContinuousRecording(
           onChunk: files.add, onError: (e, _) => errors.add(e));
       for (var i = 0; i < 71; i++) {
-        platform.pcm.add(Uint8List(96000));
+        await platform.sink!.writeFrom(Uint8List(96000));
         await Future<void>.delayed(const Duration(milliseconds: 2));
       }
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 650));
       await recorder.stopRecording();
       expect(platform.starts, 1);
       expect(platform.stops, 1);
@@ -69,7 +91,7 @@ void main() {
       expect(files.map((p) => File(p).lengthSync()), [960044, 5760044, 96044]);
     } finally {
       RecordPlatform.instance = previous;
-      await platform.pcm.close();
+
       await tmp.delete(recursive: true);
     }
   });

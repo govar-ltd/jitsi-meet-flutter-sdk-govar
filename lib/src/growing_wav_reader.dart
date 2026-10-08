@@ -34,6 +34,7 @@ class GrowingWavReader {
       if (available < _read) throw StateError('Native WAV was truncated');
       await input.setPosition(_dataOffset! + _read);
       while (_read < available) {
+        await input.setPosition(_dataOffset! + _read);
         final count = (available - _read).clamp(0, 96000);
         final bytes = await input.read(count);
         if (bytes.isEmpty) break;

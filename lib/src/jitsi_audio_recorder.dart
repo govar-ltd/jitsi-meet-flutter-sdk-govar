@@ -175,8 +175,8 @@ class JitsiAudioRecorder {
       return _continuousStop ??= () async {
         _pollTimer?.cancel();
         try {
-          await _recorder.stop();
           await _pollQueue;
+          await _recorder.stop();
           await _reader?.poll(finalRead: true);
           await _writer?.finish();
           _log('file_capture_stopped', {'bytes': _reader?.bytesRead});

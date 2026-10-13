@@ -324,6 +324,13 @@ extension JitsiMeetConferenceOptions {
                 }
             }
             
+            // 423 experiment: request unprocessed microphone audio in Jitsi.
+            // Keep the working 422 recorder and RTC session coordination unchanged.
+            for key in ["disableNS", "disableAGC", "disableAEC", "disableAP"] {
+                builder.setConfigOverride(key, withBoolean: true)
+            }
+            NSLog("Govar 423 audio experiment: disableNS/AGC/AEC/AP=true")
+
             let userInfo = JitsiMeetUserInfo(
                 displayName: displayName,
                 andEmail: email,

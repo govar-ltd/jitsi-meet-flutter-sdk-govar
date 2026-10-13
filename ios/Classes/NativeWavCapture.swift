@@ -68,7 +68,24 @@ final class NativeWavCapture: NSObject, AVAudioRecorderDelegate, RTCAudioSession
         guard let source = source, let callback = pending else { return }
         pending = nil
         do {
-            // No setCategory, setMode, setActive, preferred-rate or input-route setters here.
+            // 424 experiment: old record plugin category/rate/channels, through
+            // the RTC lock/proxy so capture and Jitsi do not configure concurrently.
+            // Default mode is an explicit experimental choice, not a claim about
+            // the historical binary's runtime mode. RTC already owns activation.
+            log("legacy_session_before", status())
+            let rtc = RTCAudioSession.sharedInstance()
+            rtc.lockForConfiguration()
+            do {
+                defer { rtc.unlockForConfiguration() }
+                try rtc.setCategory(AVAudioSession.Category.playAndRecord,
+                                    mode: AVAudioSession.Mode.default,
+                                    options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
+                try rtc.setPreferredSampleRate(48000)
+                if AVAudioSession.sharedInstance().maximumInputNumberOfChannels > 0 {
+                    try rtc.setPreferredInputNumberOfChannels(1)
+                }
+            }
+            log("legacy_session_after", status())
             let value = try AVAudioRecorder(url: source, settings: [
                 AVFormatIDKey: kAudioFormatLinearPCM, AVSampleRateKey: 48000,
                 AVNumberOfChannelsKey: 1, AVLinearPCMBitDepthKey: 16,

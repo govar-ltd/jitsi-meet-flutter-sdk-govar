@@ -138,8 +138,7 @@ class JitsiNativeViewFactory: NSObject, FlutterPlatformViewFactory {
 extension JitsiMeetConferenceOptions {
     static func createConferenceOptions(from urlString: String) throws -> JitsiMeetConferenceOptions {
         guard
-            let encodedString = urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-            let url = URL(string: encodedString)
+            let url = URL(string: urlString)
         else {
             throw NSError(domain: "Invalid URL", code: -1, userInfo: nil)
         }

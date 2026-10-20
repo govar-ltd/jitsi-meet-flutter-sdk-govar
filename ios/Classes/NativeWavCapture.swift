@@ -100,6 +100,7 @@ final class NativeWavCapture: NSObject, AVAudioRecorderDelegate, RTCAudioSession
                 "rtcActive": RTCAudioSession.sharedInstance().isActive,
                 "jitsiAudioMode": GovarJitsiAudioMode.diagnostics(),
                 "voiceProcessingBypass": GovarVoiceProcessingBypass.diagnostics(),
+                "softwareAEC": GovarSoftwareAEC.diagnostics(),
                 "category": session.category.rawValue, "mode": session.mode.rawValue,
                 "sampleRate": session.sampleRate,
                 "preferredSampleRate": session.preferredSampleRate,

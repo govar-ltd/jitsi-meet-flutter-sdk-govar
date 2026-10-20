@@ -140,6 +140,7 @@ extension JitsiMeetConferenceOptions {
         // Install before Jitsi constructs/applies its own audio-mode configuration.
         _ = GovarJitsiAudioMode.install()
         _ = GovarVoiceProcessingBypass.install()
+        GovarSoftwareAEC.installDiagnostics()
         guard
             let url = URL(string: urlString)
         else {

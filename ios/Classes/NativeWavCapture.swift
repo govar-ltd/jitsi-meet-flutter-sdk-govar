@@ -2,7 +2,7 @@ import AVFoundation
 import Flutter
 import WebRTC
 
-/// Experimental measurement-mode capture. WebRTC still owns activation/routes.
+/// Continuous capture; experimental mode is supplied by Jitsi's configuration adapter.
 /// One AVAudioRecorder writes continuously; Dart alone splits the growing WAV.
 final class NativeWavCapture: NSObject, AVAudioRecorderDelegate, RTCAudioSessionDelegate {
     private var recorder: AVAudioRecorder?
@@ -69,9 +69,6 @@ final class NativeWavCapture: NSObject, AVAudioRecorderDelegate, RTCAudioSession
         guard let source = source, let callback = pending else { return }
         pending = nil
         do {
-            // Unlike 424, use measurement rather than default, and check again
-            // after AVAudioRecorder starts (starting previously restored videoChat).
-            applyMeasurementPreference(event: "measurement_before_recorder")
             let value = try AVAudioRecorder(url: source, settings: [
                 AVFormatIDKey: kAudioFormatLinearPCM, AVSampleRateKey: 48000,
                 AVNumberOfChannelsKey: 1, AVLinearPCMBitDepthKey: 16,
@@ -87,7 +84,6 @@ final class NativeWavCapture: NSObject, AVAudioRecorderDelegate, RTCAudioSession
                 return
             }
             recorder = value
-            applyMeasurementPreference(event: "measurement_after_recorder")
             log("native_file_started")
             monitor = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in self?.log("native_status") }
             callback(status())
@@ -97,30 +93,12 @@ final class NativeWavCapture: NSObject, AVAudioRecorderDelegate, RTCAudioSession
         }
     }
 
-    /// Bounded, lifecycle-only request. Never fight Jitsi with a polling setter,
-    /// reactivate the session, or replace the user's selected audio route.
-    private func applyMeasurementPreference(event: String) {
-        let rtc = RTCAudioSession.sharedInstance()
-        rtc.lockForConfiguration()
-        var failure: String?
-        do {
-            defer { rtc.unlockForConfiguration() }
-            try rtc.setMode(AVAudioSession.Mode.measurement)
-            try rtc.setPreferredSampleRate(48000)
-        } catch {
-            failure = error.localizedDescription
-        }
-        // Log after releasing RTC's lock. Unsupported preferences must not stop
-        // an otherwise functioning call or silently claim full-band capture.
-        log(event, ["error": failure ?? "", "requestedMode": "measurement",
-                    "modeHonored": AVAudioSession.sharedInstance().mode == .measurement])
-    }
-
     func status() -> [String: Any] {
         let session = AVAudioSession.sharedInstance()
         return ["recording": recorder?.isRecording ?? false, "paused": pausedForRTC,
                 "seconds": recorder?.currentTime ?? 0, "rtcStarted": rtcStarted,
                 "rtcActive": RTCAudioSession.sharedInstance().isActive,
+                "jitsiAudioMode": GovarJitsiAudioMode.diagnostics(),
                 "category": session.category.rawValue, "mode": session.mode.rawValue,
                 "sampleRate": session.sampleRate,
                 "preferredSampleRate": session.preferredSampleRate,
@@ -172,9 +150,7 @@ final class NativeWavCapture: NSObject, AVAudioRecorderDelegate, RTCAudioSession
             self.rtcStarted = true
             self.log("rtc_audio_started")
             if self.pausedForRTC, let recorder = self.recorder {
-                self.applyMeasurementPreference(event: "measurement_before_resume")
                 self.pausedForRTC = !recorder.record()
-                self.applyMeasurementPreference(event: "measurement_after_resume")
                 self.log("native_resume_after_rtc")
             }
             self.scheduleStart()

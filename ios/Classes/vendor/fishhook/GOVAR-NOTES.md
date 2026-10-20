@@ -1,0 +1,2 @@
+Source: facebook/fishhook aadc161ac3b80db07a9908851839a17ba63a9eb1 (main), BSD license preserved in source and copied into ios/Assets/GovarWebRTCBypass-fishhook-LICENSE.txt for binary distribution.
+Local adaptations: namespace exported rebinding functions to Govar; optional per-binding applied counter counts successful pointer writes only. No global rebinding registration is used; only the loaded WebRTC.framework/WebRTC image is passed to rebind_symbols_image.

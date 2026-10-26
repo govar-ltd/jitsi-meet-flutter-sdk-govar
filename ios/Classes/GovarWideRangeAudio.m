@@ -26,6 +26,9 @@ static BOOL attempted, installed, candidate, wideActive, disabled;
 static NSUInteger generation, starts, wideStarts, fallbacks, preStartRepairs;
 static NSString *preStartMode = @"not_attempted";
 static BOOL preStartAvailable, preStartPreferenceAccepted;
+static NSDictionary *configurationAttempt, *preStartAttempt;
+static NSUInteger configurationAttempts;
+static OSStatus lastStartStatus;
 static NSInteger lastBypass = -1;
 static OSStatus lastPropertyStatus;
 static NSString *reason = @"not_installed";
@@ -42,12 +45,18 @@ static BOOL Enabled(void) {
     if (@available(iOS 18.2, *)) return AVAudioSession.sharedInstance.isEchoCancelledInputEnabled;
     return NO;
 }
-static BOOL PreferWide(BOOL value) {
-    if (@available(iOS 18.2, *)) {
-        NSError *error = nil;
-        return [AVAudioSession.sharedInstance setPrefersEchoCancelledInput:value error:&error];
-    }
+static BOOL PreferWideWithError(BOOL value, NSError **error) {
+    if (@available(iOS 18.2, *))
+        return [AVAudioSession.sharedInstance setPrefersEchoCancelledInput:value error:error];
     return NO;
+}
+static BOOL PreferWide(BOOL value) { return PreferWideWithError(value, nil); }
+static NSDictionary *Attempt(BOOL configured, BOOL available, BOOL preferred,
+                              NSError *configError, NSError *preferenceError) {
+    return @{@"configurationAccepted": @(configured), @"available": @(available),
+             @"preferenceAccepted": @(preferred), @"mode": AVAudioSession.sharedInstance.mode ?: @"unknown",
+             @"configurationErrorCode": @(configError.code), @"configurationErrorDomain": configError.domain ?: @"",
+             @"preferenceErrorCode": @(preferenceError.code), @"preferenceErrorDomain": preferenceError.domain ?: @""};
 }
 static BOOL VoiceUnit(AudioUnit unit) {
     AudioComponent component = unit ? AudioComponentInstanceGetComponent(unit) : NULL;
@@ -125,13 +134,15 @@ static void RepairSessionBeforeStart(void) {
         preStartMode = AVAudioSession.sharedInstance.mode ?: @"unknown";
     }
     // Never hold stateLock over setters: session notifications can be synchronous.
-    NSError *error = nil;
-    BOOL modeAccepted = [rtc setMode:AVAudioSessionModeDefault error:&error];
+    NSError *modeError = nil, *preferenceError = nil;
+    BOOL modeAccepted = [rtc setMode:AVAudioSessionModeDefault error:&modeError];
     BOOL available = modeAccepted && Available();
-    BOOL preferred = available && PreferWide(YES);
+    BOOL preferred = available && PreferWideWithError(YES, &preferenceError);
+    NSDictionary *attempt = Attempt(modeAccepted, available, preferred, modeError, preferenceError);
     @synchronized (stateLock) {
         if (token == generation && candidate && !disabled) {
             preStartAvailable = available; preStartPreferenceAccepted = preferred;
+            preStartAttempt = attempt;
             if (!preferred) FallBack(@"wide_range_pre_start_repair_rejected");
             else reason = @"wide_range_reapplied_after_vpio_init";
         }
@@ -148,7 +159,8 @@ static OSStatus Start(AudioUnit unit) {
     OSStatus result = systemStart(unit);
     @synchronized (stateLock) {
         if (result == noErr) [runningUnits addObject:[NSValue valueWithPointer:unit]];
-        starts++;
+        starts++; lastStartStatus = result;
+        if (result != noErr && candidate && !disabled) FallBack(@"audio_unit_start_failed");
         if (result == noErr && candidate && !disabled) {
             if (Enabled() && ApplyBypass(unit, YES)) {
                 wideActive = YES; wideStarts++; reason = @"wide_range_confirmed";
@@ -221,30 +233,43 @@ static BOOL Configure(id receiver, SEL selector, RTCAudioSessionConfiguration *c
     }
     // Jitsi already holds its RTC configuration lock. Never hold stateLock
     // across session setters: those may synchronously deliver route callbacks.
-    BOOL accepted = NO;
+    BOOL configured = NO, available = NO, accepted = NO;
+    NSError *trialError = nil, *preferenceError = nil;
     if (@available(iOS 18.2, *)) {
         PreferRTCWideConfiguration();
-        NSError *trialError = nil;
-        accepted = originalConfig(receiver, selector, DefaultCopy(config), &trialError)
-            && Available() && PreferWide(YES);
+        configured = originalConfig(receiver, selector, DefaultCopy(config), &trialError);
+        available = configured && Available();
+        accepted = available && PreferWideWithError(YES, &preferenceError);
     }
-    BOOL confirmedExisting = YES;
+    NSDictionary *attempt = Attempt(configured, available, accepted, trialError, preferenceError);
+    BOOL confirmedExisting = YES, pendingStart = NO;
     @synchronized (stateLock) {
-        if (accepted) {
+        configurationAttempt = attempt; configurationAttempts++;
+        // A transient default/voiceChat conflict before AudioOutputUnitStart
+        // must not disable the only repair point. Keep this attempt pending;
+        // Start makes the final decision before allowing unprotected audio.
+        pendingStart = runningUnits.count == 0;
+        if (pendingStart) {
+            candidate = YES; wideActive = NO;
+            reason = @"wide_range_pending_audio_unit_start";
+        } else if (accepted) {
             candidate = YES; reason = @"wide_range_requested";
-            // Jitsi may configure its mode after WebRTC has already started.
-            if (runningUnits.count > 0) {
-                for (NSValue *value in runningUnits)
-                    confirmedExisting = ApplyBypass((AudioUnit)value.pointerValue, YES) && confirmedExisting;
-                confirmedExisting = confirmedExisting && Enabled();
-                if (confirmedExisting) { wideActive = YES; reason = @"wide_range_confirmed"; }
-            }
+            for (NSValue *value in runningUnits)
+                confirmedExisting = ApplyBypass((AudioUnit)value.pointerValue, YES) && confirmedExisting;
+            confirmedExisting = confirmedExisting && Enabled();
+            if (confirmedExisting) { wideActive = YES; reason = @"wide_range_confirmed"; }
         }
-        if (!accepted || !confirmedExisting) {
+        if (!pendingStart && (!accepted || !confirmedExisting)) {
             candidate = NO; wideActive = NO; disabled = YES; RestoreUnits();
             reason = accepted ? @"wide_range_not_enabled_on_running_unit" : @"wide_range_unavailable_or_rejected";
-            if (accepted) fallbacks++;
+            fallbacks++;
         }
+    }
+    if (pendingStart) {
+        if (configured) { if (error) *error = nil; return YES; }
+        // A failed trial must not prevent normal call initialization. Keep
+        // the final pre-start retry armed while using Jitsi's safe config.
+        return originalConfig(receiver, selector, config, error);
     }
     if (accepted && confirmedExisting) { if (error) *error = nil; return YES; }
     RestoreRTCConfiguration();
@@ -314,6 +339,7 @@ static BOOL Configure(id receiver, SEL selector, RTCAudioSessionConfiguration *c
         generation++; candidate = NO; wideActive = NO; disabled = NO; fallbackConfig = nil;
         preStartRepairs = 0; preStartMode = @"not_attempted";
         preStartAvailable = NO; preStartPreferenceAccepted = NO;
+        configurationAttempt = @{}; preStartAttempt = @{}; configurationAttempts = 0; lastStartStatus = noErr;
         RestoreUnits();
     }
     [rtc unlockForConfiguration];
@@ -333,7 +359,9 @@ static BOOL Configure(id receiver, SEL selector, RTCAudioSessionConfiguration *c
                  @"preStartAvailable": @(preStartAvailable),
                  @"preStartPreferenceAccepted": @(preStartPreferenceAccepted),
                  @"lastBypassReadback": @(lastBypass),
-                 @"lastPropertyStatus": @(lastPropertyStatus)};
+                 @"lastPropertyStatus": @(lastPropertyStatus), @"lastStartStatus": @(lastStartStatus),
+                 @"configurationAttempts": @(configurationAttempts),
+                 @"configurationAttempt": configurationAttempt ?: @{}, @"preStartAttempt": preStartAttempt ?: @{}};
     }
 }
 @end

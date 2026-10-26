@@ -14,6 +14,8 @@ static const NSUInteger AVAudioSessionCategoryOptionDefaultToSpeaker = 8;
 @property BOOL rejectPreference;
 @property BOOL prefers;
 @property BOOL rejectMode;
+@property BOOL forceChatConfiguration;
+@property BOOL rejectDefaultConfiguration;
 @property NSUInteger preferenceRequests;
 @property(readonly) BOOL isEchoCancelledInputAvailable;
 @property(readonly) BOOL isEchoCancelledInputEnabled;

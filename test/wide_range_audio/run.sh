@@ -17,7 +17,7 @@ for kind in normal partial; do
  if [ "$kind" = partial ]; then define=-DTEST_PARTIAL; fi
  xcrun clang -dynamiclib -I "$stubs" "$define" "$test_dir/mock_webrtc.c" "$test_dir/libMockAudio.dylib" -o "$test_dir/$kind/WebRTC.framework/WebRTC" -install_name "$test_dir/$kind/WebRTC.framework/WebRTC"
 done
-for scenario in supported running_first unavailable rejected not_enabled bypass_rejected read_failed start_failed route_lost; do
+for scenario in supported running_first unavailable rejected not_enabled bypass_rejected read_failed start_failed route_lost capture_lost; do
  "$test_dir/test" "$scenario" "$test_dir/normal/WebRTC.framework/WebRTC"
 done
 "$test_dir/test" partial "$test_dir/partial/WebRTC.framework/WebRTC"

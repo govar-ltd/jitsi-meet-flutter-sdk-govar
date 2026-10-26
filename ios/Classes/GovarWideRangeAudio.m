@@ -168,7 +168,11 @@ static void RestoreRTCConfiguration(void) {
 }
 static void PreferRTCWideConfiguration(void) {
     if (!savedRTCConfig) savedRTCConfig = [RTCAudioSessionConfiguration webRTCConfiguration];
-    [RTCAudioSessionConfiguration setWebRTCConfiguration:DefaultCopy(savedRTCConfig)];
+    RTCAudioSessionConfiguration *wide = DefaultCopy(savedRTCConfig);
+    // The default WebRTC template uses voiceChat, whose implicit routing must
+    // not replace Jitsi's speaker route when we switch that template to default.
+    wide.categoryOptions |= AVAudioSessionCategoryOptionDefaultToSpeaker;
+    [RTCAudioSessionConfiguration setWebRTCConfiguration:wide];
 }
 static BOOL Configure(id receiver, SEL selector, RTCAudioSessionConfiguration *config, NSError **error) {
     BOOL tryWide = NO;
@@ -285,6 +289,9 @@ static BOOL Configure(id receiver, SEL selector, RTCAudioSessionConfiguration *c
 + (NSDictionary<NSString *, id> *)diagnostics {
     [self install];
     @synchronized (stateLock) {
+        // AVAudioRecorder logs status immediately after starting and periodically.
+        // Catch loss caused by a competing capture as well as route notifications.
+        if (wideActive && (!Available() || !Enabled())) FallBack(@"wide_range_lost_during_capture");
         return @{@"installed": @(installed), @"policy": @"wide_range_with_system_fallback",
                  @"requested": @(candidate), @"confirmed": @(wideActive && Enabled()),
                  @"available": @(Available()), @"enabled": @(Enabled()), @"fallback": @(disabled),

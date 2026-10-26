@@ -73,6 +73,7 @@ int main(int argc, char **argv) { @autoreleasepool {
   NSCAssert(unit.bypass==1 && [[GovarWideRangeAudio diagnostics][@"confirmed"] boolValue], @"Existing running unit reconciled");
  } else {
   NSCAssert([[RTCAudioSessionConfiguration webRTCConfiguration].mode isEqual:AVAudioSessionModeDefault], @"WebRTC cannot overwrite wide session with voiceChat");
+  NSCAssert(([RTCAudioSessionConfiguration webRTCConfiguration].categoryOptions & 8) != 0, @"Global WebRTC template cannot silently reroute speaker calls to receiver");
   NSCAssert([module.received.mode isEqual:AVAudioSessionModeDefault] && module.received.sampleRate==48000 && module.received.categoryOptions==10, @"Wide mode preserves speaker and 48k request");
   if ([scenario isEqual:@"bypass_rejected"]) unit.rejectBypass=true;
   if ([scenario isEqual:@"read_failed"]) unit.rejectRead=true;
@@ -85,6 +86,10 @@ int main(int argc, char **argv) { @autoreleasepool {
   } else {
    NSCAssert(result==0 && unit.bypass==1 && [[GovarWideRangeAudio diagnostics][@"confirmed"] boolValue], @"Confirm API and bypass before reporting wide mode");
    NSCAssert(set(&unit,777,9,55)==0 && unit.lastProperty==777 && unit.lastValue==55, @"Unrelated property unchanged");
+   if ([scenario isEqual:@"capture_lost"]) {
+    session.honorsPreference=NO;
+    NSCAssert(![[GovarWideRangeAudio diagnostics][@"confirmed"] boolValue] && unit.bypass==0, @"Recorder status detects lost API and restores VPIO");
+   }
    if ([scenario isEqual:@"route_lost"]) {
     session.honorsPreference=NO;
     [NSNotificationCenter.defaultCenter postNotificationName:AVAudioSessionRouteChangeNotification object:nil];

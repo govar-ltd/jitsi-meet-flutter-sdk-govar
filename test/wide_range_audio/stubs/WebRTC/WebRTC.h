@@ -14,5 +14,6 @@
 + (instancetype)sharedInstance;
 - (void)lockForConfiguration;
 - (void)unlockForConfiguration;
+- (BOOL)setMode:(NSString *)mode error:(NSError **)error;
 - (BOOL)setConfiguration:(RTCAudioSessionConfiguration *)config error:(NSError **)error;
 @end

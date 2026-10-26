@@ -23,7 +23,9 @@ static NSObject *stateLock;
 static NSMutableSet<NSValue *> *units, *runningUnits;
 static size_t nInit, nStart, nDispose, nSet;
 static BOOL attempted, installed, candidate, wideActive, disabled;
-static NSUInteger generation, starts, wideStarts, fallbacks;
+static NSUInteger generation, starts, wideStarts, fallbacks, preStartRepairs;
+static NSString *preStartMode = @"not_attempted";
+static BOOL preStartAvailable, preStartPreferenceAccepted;
 static NSInteger lastBypass = -1;
 static OSStatus lastPropertyStatus;
 static NSString *reason = @"not_installed";
@@ -109,8 +111,36 @@ static OSStatus Initialize(AudioUnit unit) {
     }
     return result;
 }
+// M124's StartPlayout/StartRecording, UpdateAudioUnit and sample-rate restart
+// call Start outside the RTC configuration lock. Initialize can run WITH that
+// non-recursive lock held, so repair here, after VPIO creation/initialization.
+// Creating VPIO can implicitly change default -> voiceChat despite our template.
+static void RepairSessionBeforeStart(void) {
+    RTCAudioSession *rtc = RTCAudioSession.sharedInstance;
+    [rtc lockForConfiguration];
+    NSUInteger token;
+    @synchronized (stateLock) {
+        if (!candidate || disabled) { [rtc unlockForConfiguration]; return; }
+        token = generation; wideActive = NO; preStartRepairs++;
+        preStartMode = AVAudioSession.sharedInstance.mode ?: @"unknown";
+    }
+    // Never hold stateLock over setters: session notifications can be synchronous.
+    NSError *error = nil;
+    BOOL modeAccepted = [rtc setMode:AVAudioSessionModeDefault error:&error];
+    BOOL available = modeAccepted && Available();
+    BOOL preferred = available && PreferWide(YES);
+    @synchronized (stateLock) {
+        if (token == generation && candidate && !disabled) {
+            preStartAvailable = available; preStartPreferenceAccepted = preferred;
+            if (!preferred) FallBack(@"wide_range_pre_start_repair_rejected");
+            else reason = @"wide_range_reapplied_after_vpio_init";
+        }
+    }
+    [rtc unlockForConfiguration];
+}
 static OSStatus Start(AudioUnit unit) {
     if (!atomic_load(&hooksEnabled) || !VoiceUnit(unit)) return systemStart(unit);
+    RepairSessionBeforeStart();
     @synchronized (stateLock) {
         [units addObject:[NSValue valueWithPointer:unit]];
         if (!ApplyBypass(unit, candidate && !disabled) && candidate) FallBack(@"vpio_bypass_rejected");
@@ -282,6 +312,8 @@ static BOOL Configure(id receiver, SEL selector, RTCAudioSessionConfiguration *c
     RestoreRTCConfiguration();
     @synchronized (stateLock) {
         generation++; candidate = NO; wideActive = NO; disabled = NO; fallbackConfig = nil;
+        preStartRepairs = 0; preStartMode = @"not_attempted";
+        preStartAvailable = NO; preStartPreferenceAccepted = NO;
         RestoreUnits();
     }
     [rtc unlockForConfiguration];
@@ -296,7 +328,11 @@ static BOOL Configure(id receiver, SEL selector, RTCAudioSessionConfiguration *c
                  @"requested": @(candidate), @"confirmed": @(wideActive && Enabled()),
                  @"available": @(Available()), @"enabled": @(Enabled()), @"fallback": @(disabled),
                  @"reason": reason, @"voiceUnitStarts": @(starts), @"wideRangeStartsConfirmed": @(wideStarts),
-                 @"fallbackCount": @(fallbacks), @"lastBypassReadback": @(lastBypass),
+                 @"fallbackCount": @(fallbacks), @"preStartRepairs": @(preStartRepairs),
+                 @"modeBeforePreStartRepair": preStartMode,
+                 @"preStartAvailable": @(preStartAvailable),
+                 @"preStartPreferenceAccepted": @(preStartPreferenceAccepted),
+                 @"lastBypassReadback": @(lastBypass),
                  @"lastPropertyStatus": @(lastPropertyStatus)};
     }
 }

@@ -9,7 +9,7 @@
 + (instancetype)sharedInstance { static id session; if (!session) session=[self new]; return session; }
 - (BOOL)isEchoCancelledInputAvailable { return self.capable && [self.category isEqual:AVAudioSessionCategoryPlayAndRecord] && [self.mode isEqual:AVAudioSessionModeDefault]; }
 - (BOOL)isEchoCancelledInputEnabled { return self.isEchoCancelledInputAvailable && self.prefers && self.honorsPreference; }
-- (BOOL)setPrefersEchoCancelledInput:(BOOL)value error:(NSError **)error { if (self.rejectPreference && value) return NO; self.prefers=value; return YES; }
+- (BOOL)setPrefersEchoCancelledInput:(BOOL)value error:(NSError **)error { if (value) self.preferenceRequests++; if (self.rejectPreference && value) return NO; self.prefers=value; return YES; }
 @end
 static RTCAudioSessionConfiguration *rtcConfig;
 @implementation RTCAudioSessionConfiguration
@@ -19,10 +19,12 @@ static RTCAudioSessionConfiguration *rtcConfig;
 }
 + (void)setWebRTCConfiguration:(RTCAudioSessionConfiguration *)configuration { rtcConfig=configuration; }
 @end
+static _Thread_local BOOL rtcLocked;
 @implementation RTCAudioSession
 + (instancetype)sharedInstance { static id session; if (!session) session=[self new]; return session; }
-- (void)lockForConfiguration {}
-- (void)unlockForConfiguration {}
+- (void)lockForConfiguration { NSCAssert(!rtcLocked, @"RTC lock is non-recursive"); rtcLocked=YES; }
+- (void)unlockForConfiguration { NSCAssert(rtcLocked, @"Lock owned before unlock"); rtcLocked=NO; }
+- (BOOL)setMode:(NSString *)mode error:(NSError **)error { NSCAssert(rtcLocked, @"Mode setter requires RTC lock"); if (AVAudioSession.sharedInstance.rejectMode) return NO; AVAudioSession.sharedInstance.mode=mode; return YES; }
 - (BOOL)setConfiguration:(RTCAudioSessionConfiguration *)config error:(NSError **)error { AVAudioSession.sharedInstance.category=config.category; AVAudioSession.sharedInstance.mode=config.mode; return YES; }
 @end
 @interface AudioMode : NSObject
@@ -78,13 +80,25 @@ int main(int argc, char **argv) { @autoreleasepool {
   if ([scenario isEqual:@"bypass_rejected"]) unit.rejectBypass=true;
   if ([scenario isEqual:@"read_failed"]) unit.rejectRead=true;
   if ([scenario isEqual:@"start_failed"]) unit.startStatus=-66;
+  // Actual M124 initialization can hold the non-recursive session lock.
+  [RTCAudioSession.sharedInstance lockForConfiguration];
   NSCAssert(initialize(&unit)==0, @"Initialization result retained");
+  [RTCAudioSession.sharedInstance unlockForConfiguration];
+  BOOL implicitMode=[scenario isEqual:@"implicit_voicechat"] || [scenario isEqual:@"repair_rejected"];
+  if (implicitMode) { session.mode=AVAudioSessionModeVoiceChat; session.prefers=NO; }
+  if ([scenario isEqual:@"repair_rejected"]) session.rejectMode=YES;
+  NSUInteger requests=session.preferenceRequests;
   OSStatus result=start(&unit);
   if ([scenario isEqual:@"start_failed"]) NSCAssert(result==-66 && ![[GovarWideRangeAudio diagnostics][@"confirmed"] boolValue], @"Start errors remain errors");
-  else if ([scenario isEqual:@"not_enabled"] || [scenario isEqual:@"bypass_rejected"] || [scenario isEqual:@"read_failed"]) {
+  else if ([scenario isEqual:@"not_enabled"] || [scenario isEqual:@"bypass_rejected"] || [scenario isEqual:@"read_failed"] || [scenario isEqual:@"repair_rejected"]) {
    NSCAssert(result==0 && unit.bypass==0 && ![[GovarWideRangeAudio diagnostics][@"confirmed"] boolValue], @"Unconfirmed wide mode immediately restores VPIO");
   } else {
    NSCAssert(result==0 && unit.bypass==1 && [[GovarWideRangeAudio diagnostics][@"confirmed"] boolValue], @"Confirm API and bypass before reporting wide mode");
+   if ([scenario isEqual:@"implicit_voicechat"]) {
+    NSDictionary *diagnostics=[GovarWideRangeAudio diagnostics];
+    NSCAssert([session.mode isEqual:AVAudioSessionModeDefault] && session.preferenceRequests>requests, @"Reapply default mode and request AFTER implicit voiceChat");
+    NSCAssert([diagnostics[@"preStartRepairs"] integerValue]==1 && [diagnostics[@"modeBeforePreStartRepair"] isEqual:AVAudioSessionModeVoiceChat], @"Durable initialization order diagnostics");
+   }
    NSCAssert(set(&unit,777,9,55)==0 && unit.lastProperty==777 && unit.lastValue==55, @"Unrelated property unchanged");
    if ([scenario isEqual:@"capture_lost"]) {
     session.honorsPreference=NO;

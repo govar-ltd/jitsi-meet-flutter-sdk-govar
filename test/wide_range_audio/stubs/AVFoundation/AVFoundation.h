@@ -13,6 +13,8 @@ static const NSUInteger AVAudioSessionCategoryOptionDefaultToSpeaker = 8;
 @property BOOL honorsPreference;
 @property BOOL rejectPreference;
 @property BOOL prefers;
+@property BOOL rejectMode;
+@property NSUInteger preferenceRequests;
 @property(readonly) BOOL isEchoCancelledInputAvailable;
 @property(readonly) BOOL isEchoCancelledInputEnabled;
 + (instancetype)sharedInstance;

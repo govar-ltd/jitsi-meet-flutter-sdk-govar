@@ -1,5 +1,7 @@
 #import <Foundation/Foundation.h>
 @interface RTCAudioSessionConfiguration : NSObject
++ (instancetype)webRTCConfiguration;
++ (void)setWebRTCConfiguration:(RTCAudioSessionConfiguration *)configuration;
 @property NSString *category;
 @property NSString *mode;
 @property NSUInteger categoryOptions;

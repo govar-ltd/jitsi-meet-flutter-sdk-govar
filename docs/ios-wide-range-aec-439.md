@@ -1,6 +1,6 @@
 # iOS 439 — wide-range echo-cancelled input comparison
 
-Base SDK ae17d54 (438). Prefer the iOS 18.2+ echo-cancelled input API only for Jitsi's loudspeaker videoChat configuration. Apply a copy with playAndRecord/default and explicit defaultToSpeaker, request 48kHz, then query availability and request the preference. Other mode requests and ambient teardown retain Jitsi behavior.
+Base SDK ae17d54 (438). Prefer the iOS 18.2+ echo-cancelled input API only for Jitsi's loudspeaker videoChat configuration. Apply a copy with playAndRecord/default and explicit defaultToSpeaker, request 48kHz, then query availability and request the preference. The supported WebRTC configuration API temporarily applies the same default-mode preference to WebRTC itself; its previous global configuration is restored on fallback and teardown. Other mode requests and ambient teardown retain Jitsi behavior.
 
 The official JitsiWebRTC 124.0.2 binary is unchanged. An image-scoped interceptor bypasses ordinary VoiceProcessingIO only for the candidate wide-range session. After unit start, the Apple enabled flag and bypass readback must both confirm the selection; otherwise restore VPIO immediately and asynchronously reapply the original configuration under the RTC lock. Existing running units are reconciled when Jitsi applies its configuration after start. No software AEC is added and no separate NS/AGC override is introduced.
 

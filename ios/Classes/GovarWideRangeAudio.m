@@ -27,7 +27,8 @@ static NSUInteger generation, starts, wideStarts, fallbacks;
 static NSInteger lastBypass = -1;
 static OSStatus lastPropertyStatus;
 static NSString *reason = @"not_installed";
-static RTCAudioSessionConfiguration *fallbackConfig;
+static RTCAudioSessionConfiguration *fallbackConfig, *savedRTCConfig;
+static void RestoreRTCConfiguration(void);
 static id routeObserver;
 static dispatch_queue_t policyQueue;
 
@@ -88,6 +89,7 @@ static void FallBack(NSString *why) {
             }
         }
         if (restore) {
+            RestoreRTCConfiguration();
             PreferWide(NO);
             NSError *error = nil;
             if (![rtc setConfiguration:restore error:&error]) {
@@ -156,6 +158,18 @@ static RTCAudioSessionConfiguration *DefaultCopy(RTCAudioSessionConfiguration *c
     copy.outputNumberOfChannels = config.outputNumberOfChannels;
     return copy;
 }
+// Caller holds the RTC configuration lock. Restore the previous global
+// WebRTC preference after this conference so future sessions are unaffected.
+static void RestoreRTCConfiguration(void) {
+    if (savedRTCConfig) {
+        [RTCAudioSessionConfiguration setWebRTCConfiguration:savedRTCConfig];
+        savedRTCConfig = nil;
+    }
+}
+static void PreferRTCWideConfiguration(void) {
+    if (!savedRTCConfig) savedRTCConfig = [RTCAudioSessionConfiguration webRTCConfiguration];
+    [RTCAudioSessionConfiguration setWebRTCConfiguration:DefaultCopy(savedRTCConfig)];
+}
 static BOOL Configure(id receiver, SEL selector, RTCAudioSessionConfiguration *config, NSError **error) {
     BOOL tryWide = NO;
     @synchronized (stateLock) {
@@ -167,11 +181,15 @@ static BOOL Configure(id receiver, SEL selector, RTCAudioSessionConfiguration *c
             if (!tryWide) { candidate = NO; wideActive = NO; RestoreUnits(); }
         }
     }
-    if (!tryWide) return originalConfig(receiver, selector, config, error);
+    if (!tryWide) {
+        RestoreRTCConfiguration();
+        return originalConfig(receiver, selector, config, error);
+    }
     // Jitsi already holds its RTC configuration lock. Never hold stateLock
     // across session setters: those may synchronously deliver route callbacks.
     BOOL accepted = NO;
     if (@available(iOS 18.2, *)) {
+        PreferRTCWideConfiguration();
         NSError *trialError = nil;
         accepted = originalConfig(receiver, selector, DefaultCopy(config), &trialError)
             && Available() && PreferWide(YES);
@@ -195,6 +213,7 @@ static BOOL Configure(id receiver, SEL selector, RTCAudioSessionConfiguration *c
         }
     }
     if (accepted && confirmedExisting) { if (error) *error = nil; return YES; }
+    RestoreRTCConfiguration();
     PreferWide(NO);
     return originalConfig(receiver, selector, config, error);
 }
@@ -256,6 +275,7 @@ static BOOL Configure(id receiver, SEL selector, RTCAudioSessionConfiguration *c
     [self install];
     RTCAudioSession *rtc = RTCAudioSession.sharedInstance;
     [rtc lockForConfiguration];
+    RestoreRTCConfiguration();
     @synchronized (stateLock) {
         generation++; candidate = NO; wideActive = NO; disabled = NO; fallbackConfig = nil;
         RestoreUnits();

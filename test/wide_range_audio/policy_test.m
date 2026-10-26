@@ -11,7 +11,13 @@
 - (BOOL)isEchoCancelledInputEnabled { return self.isEchoCancelledInputAvailable && self.prefers && self.honorsPreference; }
 - (BOOL)setPrefersEchoCancelledInput:(BOOL)value error:(NSError **)error { if (self.rejectPreference && value) return NO; self.prefers=value; return YES; }
 @end
+static RTCAudioSessionConfiguration *rtcConfig;
 @implementation RTCAudioSessionConfiguration
++ (instancetype)webRTCConfiguration {
+ if (!rtcConfig) { rtcConfig=[self new]; rtcConfig.category=AVAudioSessionCategoryPlayAndRecord; rtcConfig.mode=AVAudioSessionModeVoiceChat; }
+ return rtcConfig;
+}
++ (void)setWebRTCConfiguration:(RTCAudioSessionConfiguration *)configuration { rtcConfig=configuration; }
 @end
 @implementation RTCAudioSession
 + (instancetype)sharedInstance { static id session; if (!session) session=[self new]; return session; }
@@ -60,11 +66,13 @@ int main(int argc, char **argv) { @autoreleasepool {
  NSCAssert([module setConfigWithoutLock:original error:nil], @"Call configuration succeeds");
  NSCAssert([original.mode isEqual:AVAudioSessionModeVideoChat] && original.sampleRate==44100, @"Original config untouched");
  if ([scenario isEqual:@"unavailable"] || [scenario isEqual:@"rejected"]) {
+  NSCAssert([[RTCAudioSessionConfiguration webRTCConfiguration].mode isEqual:AVAudioSessionModeVoiceChat], @"Unsupported hardware restores WebRTC global preference");
   NSCAssert(module.received==original && initialize(&unit)==0 && start(&unit)==0 && unit.bypass==0, @"Unsupported API retains original config and AEC");
   NSCAssert(![[GovarWideRangeAudio diagnostics][@"confirmed"] boolValue], @"Do not report wide processing");
  } else if ([scenario isEqual:@"running_first"]) {
   NSCAssert(unit.bypass==1 && [[GovarWideRangeAudio diagnostics][@"confirmed"] boolValue], @"Existing running unit reconciled");
  } else {
+  NSCAssert([[RTCAudioSessionConfiguration webRTCConfiguration].mode isEqual:AVAudioSessionModeDefault], @"WebRTC cannot overwrite wide session with voiceChat");
   NSCAssert([module.received.mode isEqual:AVAudioSessionModeDefault] && module.received.sampleRate==48000 && module.received.categoryOptions==10, @"Wide mode preserves speaker and 48k request");
   if ([scenario isEqual:@"bypass_rejected"]) unit.rejectBypass=true;
   if ([scenario isEqual:@"read_failed"]) unit.rejectRead=true;
@@ -91,5 +99,8 @@ int main(int argc, char **argv) { @autoreleasepool {
  [NSNotificationCenter.defaultCenter postNotificationName:AVAudioSessionRouteChangeNotification object:nil];
  usleep(20000);
  NSCAssert(unit.setCalls==writes, @"Disposed units never touched");
+ original.category=@"ambient";
+ NSCAssert([module setConfigWithoutLock:original error:nil], @"Teardown succeeds");
+ NSCAssert([[RTCAudioSessionConfiguration webRTCConfiguration].mode isEqual:AVAudioSessionModeVoiceChat], @"Teardown restores global WebRTC preference");
  printf("PASS: %s\n",argv[1]);
 } return 0; }

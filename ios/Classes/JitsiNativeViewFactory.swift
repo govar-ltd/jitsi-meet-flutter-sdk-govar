@@ -138,9 +138,9 @@ class JitsiNativeViewFactory: NSObject, FlutterPlatformViewFactory {
 extension JitsiMeetConferenceOptions {
     static func createConferenceOptions(from urlString: String) throws -> JitsiMeetConferenceOptions {
         // Install before Jitsi constructs/applies its own audio-mode configuration.
-        _ = GovarJitsiAudioMode.install()
-        _ = GovarVoiceProcessingBypass.install()
-        GovarSoftwareAEC.installDiagnostics()
+        // Keep Jitsi/WebRTC standard voice-processing configuration.
+        // This observer reads VPIO state; it never changes audio properties.
+        _ = GovarSystemVoiceProcessing.install()
         guard
             let url = URL(string: urlString)
         else {

@@ -2,7 +2,7 @@ import AVFoundation
 import Flutter
 import WebRTC
 
-/// Continuous capture; experimental mode is supplied by Jitsi's configuration adapter.
+/// Continuous capture sharing Jitsi's standard voice-processing session.
 /// One AVAudioRecorder writes continuously; Dart alone splits the growing WAV.
 final class NativeWavCapture: NSObject, AVAudioRecorderDelegate, RTCAudioSessionDelegate {
     private var recorder: AVAudioRecorder?
@@ -98,9 +98,8 @@ final class NativeWavCapture: NSObject, AVAudioRecorderDelegate, RTCAudioSession
         return ["recording": recorder?.isRecording ?? false, "paused": pausedForRTC,
                 "seconds": recorder?.currentTime ?? 0, "rtcStarted": rtcStarted,
                 "rtcActive": RTCAudioSession.sharedInstance().isActive,
-                "jitsiAudioMode": GovarJitsiAudioMode.diagnostics(),
-                "voiceProcessingBypass": GovarVoiceProcessingBypass.diagnostics(),
-                "softwareAEC": GovarSoftwareAEC.diagnostics(),
+                "audioPolicy": "system_voice_processing",
+                "systemVoiceProcessing": GovarSystemVoiceProcessing.diagnostics(),
                 "category": session.category.rawValue, "mode": session.mode.rawValue,
                 "sampleRate": session.sampleRate,
                 "preferredSampleRate": session.preferredSampleRate,

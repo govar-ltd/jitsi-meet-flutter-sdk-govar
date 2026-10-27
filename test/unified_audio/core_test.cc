@@ -63,4 +63,15 @@ static void doubleTalk() {
  double nearGain=2*sqrt(sine*sine+cosine*cosine)/measured/6000.;
  std::cout<<"Double-talk near-end tone amplitude ratio: "<<nearGain<<"\n";assert(nearGain>.35);GovarAEC3Destroy(apm);
 }
-int main(int argc,char **argv){continuity(argv[1]);echo();highBand();doubleTalk();std::cout<<"All unified AEC3 core checks passed\n";}
+static void gain() {
+ GovarAudioGain microphone(8.f),playback(2.f);
+ int16_t quiet[]={100,-100,200,-200};microphone.process(quiet,4);
+ assert(quiet[0]==800&&quiet[1]==-800&&quiet[2]==1600&&quiet[3]==-1600);
+ int16_t speaker[]={1000,-1000};playback.process(speaker,2);assert(speaker[0]==2000&&speaker[1]==-2000);
+ int16_t peaks[]={32767,-32768,30000,-30000};assert(microphone.process(peaks,4)>0);
+ for(auto sample:peaks)assert(sample>=-30000&&sample<=30000);
+ std::vector<int16_t> recovery(48000,100);microphone.process(recovery.data(),recovery.size());
+ assert(recovery.back()>=790&&recovery.back()<=800);
+ std::cout<<"PASS: microphone +18 dB, playback +6 dB, bounded peaks, limiter recovery\n";
+}
+int main(int argc,char **argv){gain();continuity(argv[1]);echo();highBand();doubleTalk();std::cout<<"All unified AEC3 core checks passed\n";}

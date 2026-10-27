@@ -9,6 +9,28 @@
 #include <thread>
 #include <chrono>
 
+// Fixed gain with a sample-peak limiter: instant attenuation, 100 ms release.
+// No filtering, allocation, or disk work; the final clamp protects PCM16.
+class GovarAudioGain {
+ public:
+  explicit GovarAudioGain(float gain=1.f): gain_(gain) {}
+  uint64_t process(int16_t *samples, size_t count) {
+    uint64_t limited=0;
+    for(size_t i=0;i<count;i++) {
+      float value=static_cast<float>(samples[i])*gain_;
+      float magnitude=value<0?-value:value;
+      float required=magnitude>30000.f?30000.f/magnitude:1.f;
+      if(required<attenuation_) attenuation_=required;
+      else attenuation_+=(1.f-attenuation_)*0.0002083116f;
+      if(attenuation_<0.999f) ++limited;
+      samples[i]=static_cast<int16_t>(std::clamp(value*attenuation_,-30000.f,30000.f));
+    }
+    return limited;
+  }
+ private:
+  float gain_,attenuation_=1.f;
+};
+
 // Input and render have separate 10 ms framers. AEC3 accepts one thread per
 // direction; lifecycle/reset/flush are called only while RemoteIO is stopped.
 class GovarDuplexCore {

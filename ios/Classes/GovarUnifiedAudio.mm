@@ -14,6 +14,10 @@ static NSError *Failure(NSInteger code,NSString *message) {
 @public
     AudioUnit _unit;
     std::unique_ptr<GovarDuplexCore> _core;
+    GovarAudioGain _microphoneGain;
+    GovarAudioGain _playbackGain;
+    std::atomic<uint64_t> _microphoneLimited;
+    std::atomic<uint64_t> _playbackLimited;
     std::unique_ptr<GovarGrowingWav> _wav;
     std::atomic<bool> _playing, _recording, _fileWanted, _flushOnly;
     std::atomic<uint64_t> _renderCallbacks, _captureCallbacks, _callbackErrors;
@@ -50,7 +54,10 @@ static GovarDuplexDevice *Current(void) {
 
 static void Processed(void *context,const int16_t *samples,size_t count) {
     GovarDuplexDevice *device=(__bridge GovarDuplexDevice *)context;
-    device->_wav->append(samples,count);
+    // The callback owns this mutable core buffer; WAV and RTC get identical gained PCM.
+    int16_t *gained=const_cast<int16_t *>(samples);
+    device->_microphoneLimited+=device->_microphoneGain.process(gained,count);
+    device->_wav->append(gained,count);
     if(device->_recording.load(std::memory_order_acquire)&&!device->_flushOnly.load()) {
         AudioBufferList list={1,{{1,(UInt32)(count*2),(void *)samples}}};
         AudioUnitRenderActionFlags flags=0;
@@ -69,7 +76,8 @@ static OSStatus Render(void *context,AudioUnitRenderActionFlags *flags,const Aud
         OSStatus s=d->_delegate.getPlayoutData(flags,time,0,frames,data);
         if(s!=noErr) { memset(data->mBuffers[0].mData,0,frames*2);d->_callbackErrors++; }
     }
-    // This is the exact PCM sent to RemoteIO, including actual silence/mute.
+    d->_playbackLimited+=d->_playbackGain.process((int16_t *)data->mBuffers[0].mData,frames);
+    // Reference includes playback gain/limiting: exact PCM sent to RemoteIO.
     d->_core->render((const int16_t *)data->mBuffers[0].mData,frames);
     return noErr;
 }
@@ -87,6 +95,8 @@ static OSStatus Capture(void *context,AudioUnitRenderActionFlags *flags,const Au
 @implementation GovarDuplexDevice
 - (instancetype)init {
     self=[super init];if(!self)return nil;
+    _microphoneGain=GovarAudioGain(8.f);_playbackGain=GovarAudioGain(2.f);
+    _microphoneLimited=0;_playbackLimited=0;
     _core=std::make_unique<GovarDuplexCore>(Processed,(__bridge void *)self);
     _wav=std::make_unique<GovarGrowingWav>();
     _diskQueue=dispatch_queue_create("online.govar.unified-wav",DISPATCH_QUEUE_SERIAL);
@@ -277,6 +287,9 @@ static OSStatus Capture(void *context,AudioUnitRenderActionFlags *flags,const Au
              @"delayMs":@(_delay.load()),@"lastDeviceError":@(self.lastError),
              @"sampleRate":@48000,@"fileSampleRate":@48000,@"fileChannels":@1,
              @"aec":@YES,@"ns":@NO,@"agc":@NO,@"hpf":@NO,
+             @"gainPolicy":@"post_aec_mic8_playback2_peak_limiter",
+             @"microphoneGainDb":@18.0618,@"playbackGainDb":@6.0206,
+             @"microphoneLimitedSamples":@(_microphoneLimited.load()),@"playbackLimitedSamples":@(_playbackLimited.load()),
              @"audioUnit":@"RemoteIO",@"wavSource":@"same_post_aec_pcm_as_webrtc"};
 }
 @end

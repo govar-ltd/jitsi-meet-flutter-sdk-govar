@@ -15,12 +15,16 @@ Jitsi Meet Flutter SDK
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.resources    = 'Assets/**/*'
+  s.vendored_frameworks = 'Frameworks/GovarAEC3.xcframework'
+  s.public_header_files = 'Classes/**/*.h'
+  s.libraries = 'c++'
+  s.frameworks = 'AudioToolbox', 'AVFoundation', 'CoreFoundation'
   s.dependency 'Flutter'
   s.dependency 'JitsiMeetSDK', '12.0.0'
   s.dependency 'JitsiWebRTC', '124.0.2'
   s.platform = :ios, '15.1'
 
   # Flutter.framework does not contain a i386 slice.
-  s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
+  s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'CLANG_CXX_LANGUAGE_STANDARD' => 'c++17', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
   s.swift_version = '5.0'
 end

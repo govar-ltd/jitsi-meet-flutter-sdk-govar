@@ -8,6 +8,7 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     private let nativeWavCapture = NativeWavCapture()
 
     public static func register(with registrar: FlutterPluginRegistrar) {
+        GovarUnifiedAudio.install()
         let channel = FlutterMethodChannel(name: "jitsi_meet_flutter_sdk", binaryMessenger: registrar.messenger())
         let instance = JitsiMeetPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
@@ -36,8 +37,7 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             nativeWavCapture.start(path: path, result: result)
             return
         case "govarStopNativeWav":
-            nativeWavCapture.stop()
-            result(nil)
+            nativeWavCapture.stop { result(nil) }
             return
         case "govarNativeWavStatus":
             result(nativeWavCapture.status())

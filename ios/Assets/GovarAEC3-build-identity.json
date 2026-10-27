@@ -1,0 +1,28 @@
+{
+  "module": "GovarAEC3",
+  "version": "webrtc-audio-processing-2.1",
+  "upstream": "https://freedesktop.org/software/pulseaudio/webrtc-audio-processing/",
+  "sourceSHA256": "ae9302824b2038d394f10213cab05312c564a038434269f11dbf68f511f9f9fe",
+  "abseil": "20240722.0",
+  "namespaces": [
+    "govar_webrtc",
+    "govar_rtc",
+    "govar_absl"
+  ],
+  "format": "PCM16 mono 48000 Hz; 480-sample frames",
+  "aec": true,
+  "ns": false,
+  "agc1": false,
+  "agc2": false,
+  "hpf": false,
+  "libraries": {
+    "ios": {
+      "sha256": "9e41cb0c265fb24424c40864a9d70d96b7b3afd2331ee62a3d8d94180d425170",
+      "size": 3843192
+    },
+    "sim": {
+      "sha256": "5ca237b81e7bf17f9899f57a63616a5ba5ed3cc99d75a86118bf3d5e574508da",
+      "size": 3962056
+    }
+  }
+}

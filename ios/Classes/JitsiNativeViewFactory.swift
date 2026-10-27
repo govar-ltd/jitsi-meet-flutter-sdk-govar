@@ -140,7 +140,7 @@ extension JitsiMeetConferenceOptions {
         // Install before Jitsi constructs/applies its own audio-mode configuration.
         // Prefer wide-range echo-cancelled input only when iOS confirms support.
         // Unsupported or lost routes retain standard system voice processing.
-        GovarWideRangeAudio.beginConference()
+        GovarUnifiedAudio.install()
         guard
             let url = URL(string: urlString)
         else {
